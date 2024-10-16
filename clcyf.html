@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap%0A">
+    <style>
+        * {
+            box-sizing: border-box; /* Include padding and borders in the element’s width and height */
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Lato', serif;
+            background-color: #fff;
+            color: #333;
+            overflow-x: hidden; /* Disable horizontal scrolling on the body */
+        }
+
+        .box-container {
+            position: relative;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            z-index: 1;
+            width: 50%; /* Default for desktop */
+            max-height: 75%; /* Limit the max height for desktop */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow-y: auto; /* Enable vertical scrolling */
+            box-sizing: border-box;
+        }
+
+        .gradient-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            height: 40px;
+            background: linear-gradient(to top, rgba(240, 240, 240, 0.8), rgba(240, 240, 240, 0));
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0; /* Initially hidden */
+            transition: opacity 0.3s ease; /* Smooth transition */
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            font-size: 1em;
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: block;
+            width: 90%;
+            max-width: 300px;
+            padding: 15px;
+            margin: 10px auto;
+            font-size: 1em;
+            font-weight: 700;
+            color: #fff;
+            background-color: #bf3a3f;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+        }
+
+        .button-secondary {
+            background-color: #4a4a4a;
+        }
+
+        /* Media Query for Mobile Devices */
+        @media (max-width: 768px) {
+            body {
+                padding: 0 10px; /* Add padding to avoid touching screen edges */
+            }
+
+            .box-container {
+                width: 90%; /* Adjust width for mobile */
+                max-height: 75%;
+            }
+
+            .gradient-overlay {
+                width: 100%; /* Make overlay fit the full width of the viewport */
+                max-width: none;
+            }
+        }
+    </style>
+    <title>CLC Youth Donations & Fundraising</title>
+</head>
+<body>
+<div class="box-container" id="box-container">
+    <h1>CLC Youth Donations & Fundraising</h1>
+    <p class="subtitle">Services Our Youth Offers</p>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/just-donate" class="button">Just Donate</a>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/babysitting" class="button button-secondary">Babysitting</a>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/car-cleaning" class="button button-secondary">Car Washing</a>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/baking" class="button button-secondary">Baking</a>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/garden-work" class="button button-secondary">Garden Work</a>
+    <a href="https://sites.google.com/view/clc-youth-horsham/services/other-requests" class="button button-secondary">Other Requests</a>
+</div>
+<div class="gradient-overlay" id="gradient-overlay"></div>
+
+<script>
+    const boxContainer = document.getElementById('box-container');
+    const gradientOverlay = document.getElementById('gradient-overlay');
+
+    function checkScroll() {
+        // Check if the content inside the container is scrollable
+        if (boxContainer.scrollHeight > boxContainer.clientHeight) {
+            // Show gradient if content is scrollable and not at the bottom
+            const isAtBottom = boxContainer.scrollTop + boxContainer.clientHeight >= boxContainer.scrollHeight;
+            gradientOverlay.style.opacity = isAtBottom ? '0' : '1';
+        } else {
+            gradientOverlay.style.opacity = '0'; // Hide gradient if content doesn't overflow
+        }
+    }
+
+    // Initial check on page load
+    checkScroll();
+
+    // Update on scroll and resize
+    boxContainer.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+</script>
+</body>
+</html>
