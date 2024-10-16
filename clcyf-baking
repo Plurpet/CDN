@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baking Request Form</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            font-family: 'Lato', sans-serif;
+        }
+    
+        .container {
+            background: white;
+            padding: 20px;
+            width: 25%; /* Default width for desktop */
+            height: 50%; /* Default height for desktop */
+            border-radius: 15px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            overflow-y: scroll; /* Enable vertical scrolling */
+            position: relative;
+        }
+    
+        /* Media query for mobile devices */
+        @media (max-width: 768px) {
+            .container {
+                width: 75%; /* Adjusted width for mobile */
+                height: 75%; /* Adjusted height for mobile */
+            }
+        }
+    
+        .container::-webkit-scrollbar {
+            width: 8px; /* Custom scrollbar width */
+        }
+    
+        .container::-webkit-scrollbar-thumb {
+            background-color: #ccc; /* Thumb color */
+            border-radius: 4px;
+        }
+    
+        h2 {
+            margin-top: 0;
+            color: #bf3a3f; /* Changed h2 color */
+            text-align: center;
+            font-weight: 700;
+        }
+    
+        .description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 400;
+        }
+    
+        input[type="text"], input[type="email"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0 20px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+    
+        input[type="submit"] {
+            background: #bf3a3f; /* Button background color */
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+    
+        input[type="submit"]:hover {
+            background: #d77a7d; /* Button hover color */
+        }
+    
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+    </style>    
+</head>
+<body>
+
+<div class="message hidden" id="messageContainer"></div>
+
+<div class="container" id="requestContainer">
+    <h2>Baking Form</h2>
+    <p class="description">Please fill out the details below to request baked goods.</p>
+    <form id="bakingForm" method="post">
+        <label for="name">Full Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="phone">Phone Number:</label>
+        <input type="text" id="phone" name="phone" required>
+
+        <label for="address">Address:</label>
+        <input type="text" id="address" name="address" required>
+
+        <label for="date">Desired Date:</label>
+        <input type="date" id="date" name="date" required>
+
+</br>
+
+        <label for="allergens">Allergens:</label>
+        <input type="text" id="allergens" name="allergens" required>
+
+        <label for="otherInfo">Describe what you would like us to bake for you:</label>
+        <textarea id="otherInfo" name="otherInfo" rows="4"></textarea>
+
+        <input type="submit" value="Submit">
+    </form>
+</div>
+
+<script>
+    document.getElementById('bakingForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+        const address = document.getElementById('address').value;
+        const date = document.getElementById('date').value;
+        const allergens = document.getElementById('allergens').value;
+        const otherInfo = document.getElementById('otherInfo').value;
+
+        const payload = {
+            embeds: [{
+                title: "New Baking Request",
+                fields: [
+                    { name: "Name", value: name },
+                    { name: "Email", value: email },
+                    { name: "Phone", value: phone },
+                    { name: "Address", value: address },
+                    { name: "Desired Date", value: date },
+                    { name: "Allergens", value: allergens },
+                    { name: "Requested Item", value: otherInfo || "N/A" }
+                ],
+                color: 3066993
+            }]
+        };
+
+        showMessage("Sending request details...", "info");
+
+        fetch('https://discord.com/api/webhooks/1281298753541767178/Vh1wvK3TYw39w_vqa-DGG0Vi4PcfXsY5OkP6mVdUKrKJKy7Z3LUvk31CHExPkbhgtJwh', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(response => {
+            if (response.ok) {
+                showMessage("Request sent successfully", "success");
+            } else {
+                showMessage("Failed to send request", "error");
+            }
+        }).catch(() => {
+            showMessage("Failed to send request", "error");
+        });
+    });
+
+    function showMessage(message, type) {
+        const messageContainer = document.getElementById('messageContainer');
+        messageContainer.textContent = message;
+        messageContainer.className = `message ${type}`;
+        messageContainer.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
